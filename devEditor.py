@@ -5,10 +5,140 @@ pygtk.require('2.0')
 import gtk
 import pango
 
-TextView = gtk.TextView(buffer=None)
+
+class RichBuffer(gtk.TextBuffer):
+    '''a buffer that makes it easy to manipulate a gtk textview with 
+    rich text'''
+
+    def __init__(self):
+        '''constructor'''
+        gtk.TextBuffer.__init__(self)
+
+        self.colormap = gtk.gdk.colormap_get_system()
+
+        self.fg_tags = {}
+        self.bg_tags = {}
+        self.font_tags = {}
+        self.size_tags = {}
+        self.bold_tag = self.create_tag("bold", weight=pango.WEIGHT_BOLD) 
+        self.italic_tag = self.create_tag("italic", style=pango.STYLE_ITALIC) 
+        self.underline_tag = self.create_tag("underline", underline=pango.UNDERLINE_SINGLE) 
+        self.strike_tag = self.create_tag("strike", strikethrough=True) 
+
+    def put_text(self, text, fg_color=None, bg_color=None, font=None, size=None, bold=False, italic=False, underline=False, strike=False):
+        '''insert text at the current position with the style defined by the 
+        optional parameters'''
+        tags = self._parse_tags(fg_color, bg_color, font, size, bold, italic, underline, strike)
+        iterator = self.get_iter_at_mark(self.get_insert())#(self.get_insert())
+        self._insert(iterator, text, tags)
+
+    def _insert(self, iterator, text, tags=None):
+        '''insert text at the current position with the style defined by the 
+        optional parameters'''
+        if tags is not None:
+            self.insert_with_tags(iterator, text, *tags)
+        else:
+            self.insert(iterator, text)
+
+    def _parse_tags(self, fg_color=None, bg_color=None, font=None, size=None, bold=False, italic=False, underline=False, strike=False):
+        '''parse the parameters and return a list of tags to apply that 
+        format
+        '''
+        tags = []
+
+        if fg_color:
+            tag = self._parse_fg(fg_color)
+            if tag:
+                tags.append(tag)
+
+        if bg_color:
+            tag = self._parse_bg(bg_color)
+            if tag:
+                tags.append(tag)
+
+        if font:
+            tag = self._parse_font(font)
+            if tag:
+                tags.append(tag)
+
+        if size:
+            tag = self._parse_size(size)
+            if tag:
+                tags.append(tag)
+
+        if bold:
+            tags.append(self.bold_tag)
+
+        if italic:
+            tags.append(self.italic_tag)
+
+        if underline:
+            tags.append(self.underline_tag)
+
+        if strike:
+            tags.append(self.strike_tag)
+
+        return tags
+
+    def _parse_fg(self, value):
+        '''parse the foreground color and return a tag'''
+        if value in self.fg_tags:
+            return self.fg_tags[value]
+
+        try:
+            color = gtk.gdk.color_parse(value)
+            self.colormap.alloc_color(color)
+        except ValueError:
+            return None
+
+        color_tag = self.create_tag('fg_' + value[1:], foreground_gdk=color)
+        self.fg_tags[value] = color_tag
+
+        return color_tag
+
+    def _parse_bg(self, value):
+        '''parse the background color and return a tag'''
+        if value in self.bg_tags:
+            return self.bg_tags[value]
+
+        try:
+            color = gtk.gdk.color_parse(value)
+            self.colormap.alloc_color(color)
+        except ValueError:
+            return None
+
+        color_tag = self.create_tag('bg_' + value[1:], background_gdk=color)
+        self.bg_tags[value] = color_tag
+
+        return color_tag
+
+    def _parse_font(self, value):
+        '''parse the font and return a tag'''
+        if value in self.font_tags:
+            return self.font_tags[value]
+
+        font_tag = self.create_tag('font_' + value.replace(' ', '_'), 
+            font=value)
+        self.font_tags[value] = font_tag
+        
+        return font_tag
+
+    def _parse_size(self, value):
+        '''parse the font size and return a tag'''
+        if value in self.size_tags:
+            return self.size_tags[value]
+
+        size_tag = self.create_tag('size_' + str(value), size_points=value)
+        self.size_tags[value] = size_tag
+        return size_tag
+
+TextView = gtk.TextView()
+buff = RichBuffer()
+TextView.set_buffer(buff)
 Window = gtk.Window(gtk.WINDOW_TOPLEVEL)
 StatusBar = gtk.Statusbar()
 filename = ""
+
 class MainForm:
   def __init__(self):
     #Propiedades de la Ventana
@@ -55,8 +185,6 @@ class MainForm:
     TextView.set_border_window_size(gtk.TEXT_WINDOW_RIGHT,1)
     TextView.set_border_window_size(gtk.TEXT_WINDOW_TOP,1)
     TextView.set_border_window_size(gtk.TEXT_WINDOW_BOTTOM,1)
-
-    
     fontdesc = pango.FontDescription("monospace 9")
     TextView.modify_font(fontdesc)
     self.menub.append(self.fileM)
@@ -71,9 +199,20 @@ class MainForm:
     TextView.show()
     Window.show()
     Window.show_all()
+    #buff.put_text('buenas, como va? ', '#000000', '#FFFFFF', 'Arial', 10, True, True, True, True)
+    #buff.put_text('esto es una prueba\n', '#CC0000', '#AAAAAA', 'Purisa', 14)
+    #buff.put_text('un poco de formato\n', '#00CC00', '#FFFFFF', 'Andale Mono', 8, True, True, True, True)
+    #buff.put_text('un poco mas\n', '#CCCCCC', '#0000CC', 'Andale Mono', 16, False, True, False, True)
     
   def destroy(self, widget, data=None):
     gtk.main_quit()
+  
+  def apply_style(self, objects):
+    if self.textbuffer.get_has_selection():
+      start, end = self.textbuffer.get_selection_bounds()
+      self.textbuffer.remove_all_tags( start, end)
+      for style in self.styles:
+        self.textbuffer.apply_tag_by_name( style, start, end)
   
   def open_file(self, event):
     self.chooser = gtk.FileChooserDialog(title="Open a file",action=gtk.FILE_CHOOSER_ACTION_OPEN, buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
@@ -102,14 +241,42 @@ class MainForm:
       index = filename.rfind("/") + 1
       StatusBar.push(0, filename[index:] + " opened")
       Window.set_title(filename[index:] + " - DevEditor")
-      textbuffer = TextView.get_buffer()
+      #textbuffer = TextView.get_buffer()
       file = open(filename, "r")
       text = file.read()
-      textbuffer.set_text(text)
+      buff.set_text(text)
       file.close()
       self.chooser.destroy()
       self.chooser.destroy()
+      lastFound = 0
+      text = buff.get_text(buff.get_start_iter() , buff.get_end_iter())
+      text1 = text
+      search = ["function", "integer"]
+      ind = 0
+      buff.set_text("")
+      lessWord = ""
+      lessInd = 0
+      while (ind <> -1):
+	for i in range(0, len(search)):
+	  if lessWord == "":
+	    lessWord = search[i]
+	    lessInd = text.find(search[i])
+	    if (lessInd == -1):
+	      lessWord = ""
+	  elif text.find(search[i]) < lessInd and text.find(search[i]) > -1:
+	    lessInd = text.find(search[i])
+	    lessWord = search[i]
+	ind = text.find(lessWord)
+	if lessWord == "":
+	  ind = -1
+	  
+	if (ind <> -1):
+	  buff.put_text(text[0:ind], '#000000', '#FFFFFF', 'monospace', 10)
+	  buff.put_text(lessWord, '#0404B4', '#FFFFFF', 'monospace', 10)
+	  text = text[ind + len(lessWord):]
+	  lessWord = ""
       
+      buff.put_text(text, '#000000', '#FFFFFF', 'monospace', 10)
   def save_file(self, event):
     global filename
     if filename == "":
