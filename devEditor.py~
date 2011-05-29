@@ -26,15 +26,13 @@ class MainForm:
     self.vbox.pack_start(self.menub, False, False, 2)
     self.menub.show()
     
-    self.textView = gtk.TextView(buffer=None)
-    self.textView.set_editable(True)
-    self.textView.set_cursor_visible(True)
-    
-    self.vbox.pack_end(self.textView, True, True, 2)
+    self.vbox.pack_end(self.menub, True, True, 2)
     
     self.menub.append(self.fileM)
     
-
+    self.textView = gtk.TextView(buffer=None)
+    self.textView.set_editable(True)
+    self.textView.set_cursor_visible(True)
     
     self.window.add(self.textView)
     self.textView.show()
