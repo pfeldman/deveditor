@@ -5,38 +5,14 @@ import re
 
 global pathName
 
-class LazyTree(wx.TreeCtrl):
-    def __init__(self, *args, **kwargs):
-        super(LazyTree, self).__init__(*args, **kwargs)
-        self.Bind(wx.EVT_TREE_ITEM_EXPANDING, self.OnExpandItem)
-        self.Bind(wx.EVT_TREE_ITEM_COLLAPSING, self.OnCollapseItem)
-        self.__collapsing = False
-        #root = self.AddRoot('root')
-        #self.SetItemHasChildren(root)
-
-    def OnExpandItem(self, event):
-        nrChildren = 6
-        for childIndex in range(nrChildren):
-            child = self.AppendItem(event.GetItem(), 'child %d'%childIndex)
-
-    def OnCollapseItem(self, event):
-        if self.__collapsing:
-            event.Veto()
-        else:
-            self.__collapsing = True
-            item = event.GetItem()
-            self.CollapseAndReset(item)
-            self.SetItemHasChildren(item)
-            self.__collapsing = False
-
-
-
 class MainWindow(wx.Frame):
   def __init__(self, parent, title):
     wx.Frame.__init__(self, parent, title=title, size=(500,500))
     grilla = wx.GridBagSizer()
-    self.treeView = LazyTree(self)
+    self.treeView = wx.TreeCtrl(self)
+    
     grilla.Add(self.treeView,(0,0),(10,20), wx.EXPAND)
+    
     self.textCtrl = wx.TextCtrl(self, style= (wx.TE_MULTILINE | wx.TE_DONTWRAP))
     grilla.Add(self.textCtrl,(0,20),(10,26), wx.EXPAND)
     grilla.AddGrowableCol(20)
@@ -60,7 +36,7 @@ class MainWindow(wx.Frame):
     self.SetMenuBar(menuBar)
     self.textCtrl.SetFont(wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL))
     
-    
+    self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnActivated, self.treeView)
     self.textCtrl.Bind(wx.EVT_KEY_UP, self.hightlighting)
     self.Bind(wx.EVT_MENU, self.OnOpenProyectFolder, menuOpenProy)
     self.Bind(wx.EVT_MENU, self.OnOpenFile, menuOpen)
@@ -69,25 +45,64 @@ class MainWindow(wx.Frame):
     self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
 
     self.Show(True)
-
+  def OnActivated(self, evt):
+    print "OnActivated:    ", self.GetItemText(evt.GetItem())
+  
+  def GetItemText(self, item):
+    if item:
+      return self.treeView.GetItemText(item)
+    else:
+      return ""
+      
+  def AddTreeNodes(self, parentItem, items):
+    for item in items:
+      if type(item) == str:
+	self.treeView.AppendItem(parentItem, item)
+      else:
+	newItem = self.treeView.AppendItem(parentItem, item[0])
+	self.AddTreeNodes(newItem, item[0])
+	
   def OnOpenProyectFolder(self,e):
     dialog = wx.DirDialog(None, "Choose a directory:",style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
     if dialog.ShowModal() == wx.ID_OK:
       #a = os.system("sabelo[0]='/home/pablo/Fuentes/deveditor/devEditor.old.py'")
-      a = os.system('i=0 && for f in `find /home/pablo/Fuentes/deveditor/`; do')
-      b = os.system("$f")
-      print b
-      #c = os.system("; done'")
-      #sabelo[$i]= && i=$i+1
-      
-      #a = os.system('i=0 && for f in `find ' + dialog.GetPath() + '`; do sabelo[i]="$f" && i=$i+1; done && clear')
-      #print a
-      #c[len(c)] = 
-      #a = string(a)
-      #b = str(a).split('\n')
-      #b = str(a)
-      #c = b.rsplit('dialog.GetPath()')
-      #print c[0]
+      a = os.system('find ' + dialog.GetPath() + ' > ../foundedDirs.txt')
+      f = open('../foundedDirs.txt', 'r')
+      a = f.readline()
+      a = f.readline()
+      b = a.split(dialog.GetPath())
+      li = []
+      lastli = 0;
+      lastlen = 1
+      rootName = dialog.GetPath().split("/")
+      rootName =  rootName[len(rootName) - 1]
+      li.append(self.treeView.AddRoot(rootName))
+      stop = 0
+      while len(b) > 1:
+	b = a.split(dialog.GetPath())
+	a = f.readline()
+	if len(b) > 1:
+	  b[1] = b[1].replace("\n", "")
+	  c = b[1].split('/')
+	  if len(c) > lastlen:
+	    lastlen = len(c)
+	    if lastli + 1>=len(li):
+	      li.append(self.treeView.AppendItem(li[len(li)-1], c[lastlen - 1]))
+	      lastli = len(li)-1
+	    else:
+	      li[lastli + 1] = self.treeView.AppendItem(li[lastli], c[lastlen - 1])
+	      lastli = lastli+1
+	    parent = lastli - 1
+	  elif len(c) == lastlen:
+	    li[lastli] = self.treeView.AppendItem(li[parent], c[lastlen - 1])
+	  elif len(c) < lastlen:
+	    dif = lastlen - len(c)
+	    lastli = len(c)-1
+	    parent = lastli - 1
+	    lastlen = len(c)
+	    li[lastli] = self.treeView.AppendItem(li[parent], c[lastlen - 1])
+	  
+      os.system('rm ../foundedDirs.txt')
       dialog.Destroy()
       
   def OnOpenFile(self,e):
