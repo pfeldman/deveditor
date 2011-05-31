@@ -7,7 +7,7 @@ global pathName
 class MainWindow(wx.Frame):
   def __init__(self, parent, title):
     wx.Frame.__init__(self, parent, title=title, size=(500,500))
-    self.textCtrl = wx.TextCtrl(self, style=wx.TE_MULTILINE)
+    self.textCtrl = wx.TextCtrl(self, style= (wx.TE_MULTILINE | wx.TE_DONTWRAP))
     self.CreateStatusBar()
 
     filemenu= wx.Menu()
@@ -26,7 +26,6 @@ class MainWindow(wx.Frame):
     
     
     self.textCtrl.Bind(wx.EVT_KEY_UP, self.hightlighting)
-    
     self.Bind(wx.EVT_MENU, self.OnOpenFile, menuOpen)
     self.Bind(wx.EVT_MENU, self.OnSaveFile, menuSave)
     self.Bind(wx.EVT_MENU, self.OnSaveAsFile, menuSaveAs)
@@ -51,8 +50,15 @@ class MainWindow(wx.Frame):
       
   def hightlighting(self, e):
     text = self.textCtrl.GetValue()
-    search = ["function", '/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/']
-    searchCol = [wx.TextAttr(wx.BLACK, wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_BOLD)), wx.TextAttr(wx.GREEN, wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_LIGHT))]
+    search = ["function",
+	      "/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/", 
+	      "\"([^\"]+)\"",
+	      "\'([^\']+)\'"]
+	      
+    searchCol = [wx.TextAttr('#000000', wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_BOLD)), 
+		 wx.TextAttr('#A4A4A4', wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.ITALIC, wx.FONTWEIGHT_LIGHT)),
+		 wx.TextAttr('#B40404', wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_LIGHT)),
+		 wx.TextAttr('#B40404', wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_LIGHT))]
     ind = 0
     lessWord = ""
     lessInd = 0
@@ -74,7 +80,6 @@ class MainWindow(wx.Frame):
 	  index = i
       
       ind = text.find(lessWord)
-      print '-' + lessWord + '-'
       ind = ind + plus
       if lessWord == "":
 	ind = -1
