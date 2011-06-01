@@ -6,14 +6,18 @@ import re
 global pathName
 global activaTab
 global activeFiles
+global controll
 global textC
+
 class MainWindow(wx.Frame):
   def __init__(self, parent, title):
     global activaTab
     global activeFiles
     global textC
+    global controll
     
     textC = []
+    controll = False
     wx.Frame.__init__(self, parent, title=title, size=(1000,1000))
     self.SetIcon(wx.Icon('ico.ico', wx.BITMAP_TYPE_ICO))
     self.Maximize()
@@ -85,6 +89,7 @@ class MainWindow(wx.Frame):
     self.panel[0].Bind(wx.EVT_MIDDLE_UP, self.OnCloseTab)
     self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnActivated, self.treeView)
     textC[0].Bind(wx.EVT_KEY_UP, self.hightlighting)
+    textC[0].Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
     self.Bind(wx.EVT_TOOL, self.OnNewFile, newTool)
     self.Bind(wx.EVT_TOOL, self.OnOpenFile, openTool)
     self.Bind(wx.EVT_TOOL, self.OnSaveFile, saveTool)
@@ -105,7 +110,32 @@ class MainWindow(wx.Frame):
     self.tabbed.SetSelection(len(textC)-1)
     textC[len(textC)-1].SetFont(wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL))
     textC[len(textC)-1].Bind(wx.EVT_KEY_UP, self.hightlighting)
-    
+
+  def OnKeyDown(self, e):
+    indexText = self.tabbed.GetSelection()
+    global controll
+    global textC
+    keycode = e.GetKeyCode()
+    if keycode == wx.WXK_CONTROL:
+      init = textC[indexText].GetInsertionPoint()
+      self.hightlighting(e)
+      controll = True
+      text = " " + textC[indexText].GetValue() + " "
+      while text[init-1:init] <> " ":
+	init = init - 1
+	
+      end = init+1
+      while text[end-1:end] <> " ":
+	end = end + 1
+      
+      init = init-1
+      end = end-1
+      textC[indexText].SetStyle(init, end, wx.TextAttr('#000000', wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_BOLD)))
+      e.Skip()
+    else:
+      if controll == False:
+	e.Skip()
+      
   def OnCloseTab(self,e):
     toClose = self.tabbed.GetSelection()
     del self.panel[toClose]
@@ -232,6 +262,8 @@ class MainWindow(wx.Frame):
       
       
   def hightlighting(self, e):
+    global controll
+    controll = False
     indexText = self.tabbed.GetSelection()
     global textC
     text = textC[indexText].GetValue()
