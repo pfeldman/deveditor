@@ -123,11 +123,11 @@ class MainWindow(wx.Frame):
       self.hightlighting(e)
       controll = True
       text = " " + textC[indexText].GetValue() + " "
-      while text[init-1:init] <> " ":
+      while text[init-1:init] <> " " and text[init-1:init] <> ")" and text[init-1:init] <> ";"  and text[init-1:init] <> "	"  and text[init-1:init] <> ".":
 	init = init - 1
 	
       end = init+1
-      while text[end-1:end] <> " ":
+      while text[end-1:end] <> " " and text[end-1:end] <> "(" and text[end-1:end] <> "{" and text[end-1:end] <> "	":
 	end = end + 1
       
       init = init-1
