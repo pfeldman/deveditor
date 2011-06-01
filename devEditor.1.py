@@ -8,16 +8,17 @@ global activaTab
 global activeFiles
 global controll
 global textC
-
+global shift
 class MainWindow(wx.Frame):
   def __init__(self, parent, title):
     global activaTab
     global activeFiles
     global textC
     global controll
-    
+    global shift
     textC = []
     controll = False
+    shift = False
     wx.Frame.__init__(self, parent, title=title, size=(1000,1000))
     self.SetIcon(wx.Icon('ico.ico', wx.BITMAP_TYPE_ICO))
     self.Maximize()
@@ -115,6 +116,7 @@ class MainWindow(wx.Frame):
     indexText = self.tabbed.GetSelection()
     global controll
     global textC
+    global shift
     keycode = e.GetKeyCode()
     if keycode == wx.WXK_CONTROL:
       init = textC[indexText].GetInsertionPoint()
@@ -132,6 +134,13 @@ class MainWindow(wx.Frame):
       end = end-1
       textC[indexText].SetStyle(init, end, wx.TextAttr('#000000', wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_BOLD)))
       e.Skip()
+    elif keycode == wx.WXK_SHIFT:
+      shift = True
+    elif keycode == 114 or keycode == 82:
+      if controll == True and shift == True:
+	wx.MessageBox('Choose Resource Box', 'Info')
+      else:
+	e.Skip()
     else:
       if controll == False:
 	e.Skip()
@@ -264,6 +273,7 @@ class MainWindow(wx.Frame):
   def hightlighting(self, e):
     global controll
     controll = False
+    shift = False
     indexText = self.tabbed.GetSelection()
     global textC
     text = textC[indexText].GetValue()
