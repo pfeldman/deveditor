@@ -21,10 +21,8 @@ class MainWindow(wx.Frame):
     self.panel = []
     grilla.Add(self.treeView,(0,0),(40,20), wx.EXPAND)
     
-    
-    #grilla.Add(self.textCtrl,(1.5,20),(40,76), wx.EXPAND)
-    
     self.tabbed = wx.Notebook(self, -1, style=(wx.NB_TOP))
+    
     self.panel.append(wx.NotebookPage(self.tabbed, -1))
     self.tabbed.AddPage(self.panel[0], "Untitled")
     activaTab = 0
@@ -41,6 +39,8 @@ class MainWindow(wx.Frame):
     self.CreateStatusBar()
 
     filemenu= wx.Menu()
+    menuNew = filemenu.Append(wx.ID_NEW, "&New"," Open a new file")
+    filemenu.AppendSeparator()
     menuOpen = filemenu.Append(wx.ID_OPEN, "&Open"," Open a new file")
     menuOpenProy = filemenu.Append(0, "&Open Proyect"," Open a full preyect file")
     filemenu.AppendSeparator()
@@ -54,8 +54,11 @@ class MainWindow(wx.Frame):
     self.SetMenuBar(menuBar)
     textC[0].SetFont(wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL))
     
+    self.tabbed.Bind(wx.EVT_MIDDLE_UP, self.OnCloseTab)
+    self.panel[0].Bind(wx.EVT_MIDDLE_UP, self.OnCloseTab)
     self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnActivated, self.treeView)
     textC[0].Bind(wx.EVT_KEY_UP, self.hightlighting)
+    self.Bind(wx.EVT_MENU, self.OnNewFile, menuNew)
     self.Bind(wx.EVT_MENU, self.OnOpenProyectFolder, menuOpenProy)
     self.Bind(wx.EVT_MENU, self.OnOpenFile, menuOpen)
     self.Bind(wx.EVT_MENU, self.OnSaveFile, menuSave)
@@ -63,6 +66,21 @@ class MainWindow(wx.Frame):
     self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
 
     self.Show(True)
+  def OnNewFile(self,e):
+    self.panel.append(wx.NotebookPage(self.tabbed, -1))
+    self.tabbed.AddPage(self.panel[len(self.panel)-1], "Untitled")
+    textC.append(wx.TextCtrl(self.panel[len(self.panel)-1], style= (wx.TE_MULTILINE | wx.TE_DONTWRAP)))
+    activeFiles.append("")
+    self.tabbed.SetSelection(len(textC)-1)
+    textC[len(textC)-1].SetFont(wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL))
+    textC[len(textC)-1].Bind(wx.EVT_KEY_UP, self.hightlighting)
+    
+  def OnCloseTab(self,e):
+    toClose = self.tabbed.GetSelection()
+    del self.panel[toClose]
+    del textC[toClose]
+    del activeFiles[toClose]
+    self.tabbed.RemovePage(toClose)
     
   def OnPageChanged(self, e):
     activaTab = e.GetSelection()
