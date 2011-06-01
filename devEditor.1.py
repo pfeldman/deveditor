@@ -16,10 +16,11 @@ class MainWindow(wx.Frame):
     textC = []
     wx.Frame.__init__(self, parent, title=title, size=(1000,1000))
     self.SetIcon(wx.Icon('ico.ico', wx.BITMAP_TYPE_ICO))
+    self.Maximize()
     grilla = wx.GridBagSizer()
     self.treeView = wx.TreeCtrl(self)
     self.panel = []
-    grilla.Add(self.treeView,(0,0),(40,20), wx.EXPAND)
+    grilla.Add(self.treeView,(0,0),(10,20), wx.EXPAND)
     
     self.tabbed = wx.Notebook(self, -1, style=(wx.NB_TOP))
     
@@ -31,7 +32,33 @@ class MainWindow(wx.Frame):
     textC.append(wx.TextCtrl(self.panel[0], style= (wx.TE_MULTILINE | wx.TE_DONTWRAP)))
     
     self.tabbed.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
-    grilla.Add(self.tabbed,(0,20),(39,76), wx.EXPAND)
+    grilla.Add(self.tabbed,(0,20),(10,80), wx.EXPAND)
+    
+    
+    
+    
+    self.toolbar = self.CreateToolBar()
+    self.toolbar.SetToolBitmapSize((16,16))  # sets icon size
+ 
+    new_ico = wx.ArtProvider.GetBitmap(wx.ART_NEW, wx.ART_TOOLBAR, (16,16))
+    newTool = self.toolbar.AddSimpleTool(wx.ID_ANY, new_ico, "New", "Open a new tab")
+
+    open_ico = wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_TOOLBAR, (16,16))
+    openTool = self.toolbar.AddSimpleTool(wx.ID_ANY, open_ico, "Open", "Open a file to edit")
+    self.toolbar.AddSeparator()
+    
+    save_ico = wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE, wx.ART_TOOLBAR, (16,16))
+    saveTool = self.toolbar.AddSimpleTool(wx.ID_ANY, save_ico, "Save", "Saves the chages to disk")
+
+    saveas_ico = wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE_AS, wx.ART_TOOLBAR, (16,16))
+    saveasTool = self.toolbar.AddSimpleTool(wx.ID_ANY, saveas_ico, "Save As", "Saves As a new file the chages to disk")
+    
+    self.toolbar.AddSeparator()
+    self.toolbar.Realize()
+    
+    
+    
+    
     grilla.AddGrowableCol(20)
     grilla.AddGrowableRow(2)
     
@@ -49,7 +76,7 @@ class MainWindow(wx.Frame):
     filemenu.AppendSeparator()
     menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
     
-    menuBar = wx.MenuBar()
+    menuBar = wx.MenuBar(wx.MB_DOCKABLE)
     menuBar.Append(filemenu,"&File")
     self.SetMenuBar(menuBar)
     textC[0].SetFont(wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL))
@@ -58,6 +85,10 @@ class MainWindow(wx.Frame):
     self.panel[0].Bind(wx.EVT_MIDDLE_UP, self.OnCloseTab)
     self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnActivated, self.treeView)
     textC[0].Bind(wx.EVT_KEY_UP, self.hightlighting)
+    self.Bind(wx.EVT_TOOL, self.OnNewFile, newTool)
+    self.Bind(wx.EVT_TOOL, self.OnOpenFile, openTool)
+    self.Bind(wx.EVT_TOOL, self.OnSaveFile, saveTool)
+    self.Bind(wx.EVT_TOOL, self.OnSaveAsFile, saveasTool)
     self.Bind(wx.EVT_MENU, self.OnNewFile, menuNew)
     self.Bind(wx.EVT_MENU, self.OnOpenProyectFolder, menuOpenProy)
     self.Bind(wx.EVT_MENU, self.OnOpenFile, menuOpen)
@@ -264,7 +295,7 @@ class MainWindow(wx.Frame):
     global textC
     indexText = self.tabbed.GetSelection()
     self.dirname = ''
-    dlg = wx.FileDialog(self, "Save As", self.dirname, "", "*.*", wx.SAVE)
+    dlg = wx.FileDialog(self, "Save As", self.dirname, "", "*", wx.SAVE)
     if dlg.ShowModal() == wx.ID_OK:
       filename = dlg.GetFilename()
       self.dirname = dlg.GetDirectory()
