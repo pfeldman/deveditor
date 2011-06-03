@@ -2,10 +2,10 @@
 import wx
 import os
 import re
+import time
 
 class MainWindow(wx.Frame):
   def __init__(self, parent, title):
-    
     self.panel = []
     self.textC = []
     self.textContainer = []
@@ -13,10 +13,9 @@ class MainWindow(wx.Frame):
     self.control = False
     self.shift = False
     #CREO LA VENTANA
-    wx.Frame.__init__(self, parent, title=title, size=(1000,1000))
+    wx.Frame.__init__(self, parent, title=title)
     self.Show(True)
     self.SetIcon(wx.Icon('./ico.ico', wx.BITMAP_TYPE_ICO))
-    
     #CREO BARRA DE MENUS
     filemenu= wx.Menu()
     menuNew = filemenu.Append(wx.ID_NEW, "&New"," Open a new file")
@@ -90,6 +89,7 @@ class MainWindow(wx.Frame):
     self.Bind(wx.EVT_TOOL, self.OnOpenFile, openTool)
     self.Bind(wx.EVT_TOOL, self.OnSaveFile, saveTool)
     self.Bind(wx.EVT_TOOL, self.OnSaveAsFile, saveasTool)
+    
     self.Maximize()
 
   def _layout(self):
@@ -97,14 +97,10 @@ class MainWindow(wx.Frame):
     sizer_2 = wx.BoxSizer(wx.HORIZONTAL)
     sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
     sizer_1.Add(self.splitter, 1, wx.EXPAND, 20)
-    self.SetSizer(sizer_1)
     self.editPanel.SetSizer(sizer_2)
     sizer_3.Add(self.tabbed, 1, wx.EXPAND, 0)
     self.editPanel.SetSizer(sizer_3)
-    self.splitter.SplitVertically(self.filesPanel, self.editPanel, 400)
-    sizer_1.Fit(self)
-    sizer_1.SetSizeHints(self)
-    self.Layout()
+    self.splitter.SplitVertically(self.filesPanel, self.editPanel, 200)
     
   def OnNewFile(self,e):
     self.panel.append(wx.Panel(self.tabbed, -1))
@@ -353,4 +349,5 @@ class MainWindow(wx.Frame):
     
 app = wx.App(False)
 frame = MainWindow(None, "DevEditor")
+wx.InitAllImageHandlers()
 app.MainLoop()
