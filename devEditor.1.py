@@ -3,45 +3,68 @@ import wx
 import os
 import re
 
-global pathName
-global activaTab
-global activeFiles
-global controll
-global textC
-global shift
 class MainWindow(wx.Frame):
   def __init__(self, parent, title):
-    global activaTab
-    global activeFiles
-    global textC
-    global controll
-    global shift
-    textC = []
-    controll = False
-    shift = False
-    wx.Frame.__init__(self, parent, title=title, size=(1000,1000))
-    self.SetIcon(wx.Icon('ico.ico', wx.BITMAP_TYPE_ICO))
-    self.Maximize()
-    grilla = wx.GridBagSizer()
-    self.treeView = wx.TreeCtrl(self)
+    
     self.panel = []
-    grilla.Add(self.treeView,(0,0),(10,20), wx.EXPAND)
+    self.textC = []
+    self.textContainer = []
+    self.activeFiles = []
+    self.control = False
+    self.shift = False
+    #CREO LA VENTANA
+    wx.Frame.__init__(self, parent, title=title, size=(1000,1000))
+    self.Show(True)
+    self.SetIcon(wx.Icon('./ico.ico', wx.BITMAP_TYPE_ICO))
     
-    self.tabbed = wx.Notebook(self, -1, style=(wx.NB_TOP))
+    #CREO BARRA DE MENUS
+    filemenu= wx.Menu()
+    menuNew = filemenu.Append(wx.ID_NEW, "&New"," Open a new file")
+    filemenu.AppendSeparator()
+    menuOpen = filemenu.Append(wx.ID_OPEN, "&Open"," Open a new file")
+    menuOpenProy = filemenu.Append(0, "&Open Proyect"," Open a full preyect file")
+    filemenu.AppendSeparator()
+    menuSave = filemenu.Append(wx.ID_SAVE,"&Save"," Save the file")
+    menuSaveAs = filemenu.Append(wx.ID_SAVEAS,"Save &as"," Save the file as a new file")
+    filemenu.AppendSeparator()
+    menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
+    menuBar = wx.MenuBar()
+    menuBar.Append(filemenu,"&File")
+    self.SetMenuBar(menuBar)
     
-    self.panel.append(wx.NotebookPage(self.tabbed, -1))
-    self.tabbed.AddPage(self.panel[0], "Untitled")
-    activaTab = 0
-    activeFiles = []
-    activeFiles.append("")
-    textC.append(wx.TextCtrl(self.panel[0], style= (wx.TE_MULTILINE | wx.TE_DONTWRAP)))
+    #CREO EVENTOS DEL MENU
+    self.Bind(wx.EVT_MENU, self.OnNewFile, menuNew)
+    self.Bind(wx.EVT_MENU, self.OnOpenProyectFolder, menuOpenProy)
+    self.Bind(wx.EVT_MENU, self.OnOpenFile, menuOpen)
+    self.Bind(wx.EVT_MENU, self.OnSaveFile, menuSave)
+    self.Bind(wx.EVT_MENU, self.OnSaveAsFile, menuSaveAs)
+    self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
     
+    #CREO STATUS BAR
+    self.CreateStatusBar()
+    
+    #CREO VENTANA SPLITEADA
+    self.splitter = wx.SplitterWindow(self, -1, style=wx.SP_LIVE_UPDATE)
+    self.editPanel = wx.Panel(self.splitter, -1)
+    self.tabbed = wx.Notebook(self.editPanel, -1, style=0)
+    self.filesPanel = wx.Panel(self.splitter, -1)
+    
+    self._layout()
+    
+    #CREO UN NUEVO TAB
+    self.OnNewFile(self)
+    
+    #EVENTOS DEL TABBED
     self.tabbed.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnPageChanged)
-    grilla.Add(self.tabbed,(0,20),(10,80), wx.EXPAND)
+    self.tabbed.Bind(wx.EVT_MIDDLE_UP, self.OnCloseTab)
     
+    #CREO EL TREEVIEW
+    sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
+    self.treeView = wx.TreeCtrl(self.filesPanel)
+    sizer_4.Add(self.treeView, 100, wx.wx.EXPAND, 0)
+    self.filesPanel.SetSizer(sizer_4)
     
-    
-    
+    #CREO TOOL BAR
     self.toolbar = self.CreateToolBar()
     self.toolbar.SetToolBitmapSize((16,16))  # sets icon size
  
@@ -61,56 +84,40 @@ class MainWindow(wx.Frame):
     self.toolbar.AddSeparator()
     self.toolbar.Realize()
     
-    
-    
-    
-    grilla.AddGrowableCol(20)
-    grilla.AddGrowableRow(2)
-    
-    self.SetSizerAndFit(grilla)
-    self.CreateStatusBar()
-
-    filemenu= wx.Menu()
-    menuNew = filemenu.Append(wx.ID_NEW, "&New"," Open a new file")
-    filemenu.AppendSeparator()
-    menuOpen = filemenu.Append(wx.ID_OPEN, "&Open"," Open a new file")
-    menuOpenProy = filemenu.Append(0, "&Open Proyect"," Open a full preyect file")
-    filemenu.AppendSeparator()
-    menuSave = filemenu.Append(wx.ID_SAVE,"&Save"," Save the file")
-    menuSaveAs = filemenu.Append(wx.ID_SAVEAS,"Save &as"," Save the file as a new file")
-    filemenu.AppendSeparator()
-    menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
-    
-    menuBar = wx.MenuBar(wx.MB_DOCKABLE)
-    menuBar.Append(filemenu,"&File")
-    self.SetMenuBar(menuBar)
-    textC[0].SetFont(wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL))
-    
-    self.tabbed.Bind(wx.EVT_MIDDLE_UP, self.OnCloseTab)
-    self.panel[0].Bind(wx.EVT_MIDDLE_UP, self.OnCloseTab)
+    #EVENTOS DEL TOOL BAR
     self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnActivated, self.treeView)
-    textC[0].Bind(wx.EVT_KEY_UP, self.hightlighting)
-    textC[0].Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
     self.Bind(wx.EVT_TOOL, self.OnNewFile, newTool)
     self.Bind(wx.EVT_TOOL, self.OnOpenFile, openTool)
     self.Bind(wx.EVT_TOOL, self.OnSaveFile, saveTool)
     self.Bind(wx.EVT_TOOL, self.OnSaveAsFile, saveasTool)
-    self.Bind(wx.EVT_MENU, self.OnNewFile, menuNew)
-    self.Bind(wx.EVT_MENU, self.OnOpenProyectFolder, menuOpenProy)
-    self.Bind(wx.EVT_MENU, self.OnOpenFile, menuOpen)
-    self.Bind(wx.EVT_MENU, self.OnSaveFile, menuSave)
-    self.Bind(wx.EVT_MENU, self.OnSaveAsFile, menuSaveAs)
-    self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
+    self.Maximize()
 
-    self.Show(True)
+  def _layout(self):
+    sizer_1 = wx.BoxSizer(wx.VERTICAL)
+    sizer_2 = wx.BoxSizer(wx.HORIZONTAL)
+    sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
+    sizer_1.Add(self.splitter, 1, wx.EXPAND, 20)
+    self.SetSizer(sizer_1)
+    self.editPanel.SetSizer(sizer_2)
+    sizer_3.Add(self.tabbed, 1, wx.EXPAND, 0)
+    self.editPanel.SetSizer(sizer_3)
+    self.splitter.SplitVertically(self.filesPanel, self.editPanel, 400)
+    sizer_1.Fit(self)
+    sizer_1.SetSizeHints(self)
+    self.Layout()
+    
   def OnNewFile(self,e):
-    self.panel.append(wx.NotebookPage(self.tabbed, -1))
+    self.panel.append(wx.Panel(self.tabbed, -1))
     self.tabbed.AddPage(self.panel[len(self.panel)-1], "Untitled")
-    textC.append(wx.TextCtrl(self.panel[len(self.panel)-1], style= (wx.TE_MULTILINE | wx.TE_DONTWRAP)))
-    activeFiles.append("")
-    self.tabbed.SetSelection(len(textC)-1)
-    textC[len(textC)-1].SetFont(wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL))
-    textC[len(textC)-1].Bind(wx.EVT_KEY_UP, self.hightlighting)
+    self.textC.append(wx.TextCtrl(self.panel[len(self.panel)-1], style= (wx.TE_MULTILINE | wx.TE_DONTWRAP)))
+    self.textContainer.append(wx.BoxSizer(wx.HORIZONTAL))
+    self.textContainer[len(self.panel)-1].Add(self.textC[len(self.panel)-1], 1, wx.ALL|wx.EXPAND, 5)
+    self.panel[len(self.panel)-1].SetSizer(self.textContainer[len(self.panel)-1])
+    self.tabbed.SetSelection(len(self.textC)-1)
+    self.textC[len(self.textC)-1].SetFont(wx.Font(9, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL))
+    self.activeFiles.append("")
+    self.textC[len(self.textC)-1].Bind(wx.EVT_KEY_UP, self.hightlighting)
+    self.textC[len(self.textC)-1].Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
 
   def OnKeyDown(self, e):
     indexText = self.tabbed.GetSelection()
@@ -119,10 +126,10 @@ class MainWindow(wx.Frame):
     global shift
     keycode = e.GetKeyCode()
     if keycode == wx.WXK_CONTROL:
-      init = textC[indexText].GetInsertionPoint()
+      init = self.textC[indexText].GetInsertionPoint()
       self.hightlighting(e)
-      controll = True
-      text = " " + textC[indexText].GetValue() + " "
+      self.control = True
+      text = " " + self.textC[indexText].GetValue() + " "
       while text[init-1:init] <> " " and text[init-1:init] <> ")" and text[init-1:init] <> ";"  and text[init-1:init] <> "	"  and text[init-1:init] <> ".":
 	init = init - 1
 	
@@ -132,55 +139,46 @@ class MainWindow(wx.Frame):
       
       init = init-1
       end = end-1
-      textC[indexText].SetStyle(init, end, wx.TextAttr('#000000', wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_BOLD)))
+      self.textC[indexText].SetStyle(init, end, wx.TextAttr('#000000', wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_BOLD)))
       e.Skip()
     elif keycode == wx.WXK_SHIFT:
-      shift = True
+      self.shift = True
     elif keycode == 114 or keycode == 82:
-      if controll == True and shift == True:
+      if self.control == True and self.shift == True:
 	wx.MessageBox('Choose Resource Box', 'Info')
       else:
 	e.Skip()
     else:
-      if controll == False:
+      if self.control == False:
+	tabName = self.tabbed.GetPageText(indexText)
+	if tabName[len(tabName) - 1:] <> '*':
+	  self.tabbed.SetPageText(indexText, self.tabbed.GetPageText(indexText) + "*")
 	e.Skip()
       
   def OnCloseTab(self,e):
     toClose = self.tabbed.GetSelection()
     del self.panel[toClose]
-    del textC[toClose]
-    del activeFiles[toClose]
+    del self.textC[toClose]
+    del self.activeFiles[toClose]
+    del self.textContainer[toClose]
     self.tabbed.RemovePage(toClose)
     
   def OnPageChanged(self, e):
-    activaTab = e.GetSelection()
     self.hightlighting(e)
     
   def OnActivated(self, e):
-    global textC
-    global activeFiles
     realPathName = self.GetItemText(e.GetItem()).split("  				-  \"")[1][:-1]
     filename = realPathName = self.GetItemText(e.GetItem()).split("  				-  \"")[0]
     continueCon = True
     item = 0
-    for i in range(0, len(activeFiles)):
-      if activeFiles[i] == realPathName:
+    for i in range(0, len(self.activeFiles)):
+      if self.activeFiles[i] == realPathName:
 	continueCon = False
 	item = i
 	self.tabbed.SetSelection(item)
 	
     if continueCon == True:
-      self.panel.append(wx.NotebookPage(self.tabbed, -1))
-      self.tabbed.AddPage(self.panel[len(self.panel)-1], filename)
-      textC.append(wx.TextCtrl(self.panel[len(self.panel)-1], style= (wx.TE_MULTILINE | wx.TE_DONTWRAP)))
-      activeFiles.append(realPathName)
-      f = open(realPathName, 'r')
-      textC[len(textC)-1].SetValue(f.read())
-      f.close()
-      textC[len(textC)-1].SetFont(wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL))
-      textC[len(textC)-1].Bind(wx.EVT_KEY_UP, self.hightlighting)
-      self.tabbed.SetSelection(len(textC)-1)
-      self.hightlighting(e)
+      self.Open(e,realPathName, filename)
 
   def GetItemText(self, item):
     if item:
@@ -238,10 +236,17 @@ class MainWindow(wx.Frame):
       os.system('rm ../foundedDirs.txt')
       dialog.Destroy()
       
+  def Open(self, e, fullPath, filename):
+    self.OnNewFile(e)
+    f = open(fullPath, 'r')
+    self.textC[len(self.textC)-1].SetValue(f.read())
+    f.close()
+    self.tabbed.SetSelection(len(self.textC)-1)
+    self.hightlighting(e)
+    self.tabbed.SetPageText(len(self.textC)-1,filename)
+    self.activeFiles[len(self.textC)-1] = fullPath
+    
   def OnOpenFile(self,e):
-    global pathName
-    global activeFiles
-    global textC
     self.dirname = ''
     dlg = wx.FileDialog(self, "Open file", self.dirname, "", "*", wx.OPEN)
     if dlg.ShowModal() == wx.ID_OK:
@@ -249,35 +254,24 @@ class MainWindow(wx.Frame):
       self.dirname = dlg.GetDirectory()
       pathName = os.path.join(self.dirname, filename)
       continueCon = True
-      for i in range(0, len(activeFiles)):
-	if activeFiles[i] == pathName:
+      for i in range(0, len(self.activeFiles)):
+	if self.activeFiles[i] == pathName:
 	  item = i
 	  self.tabbed.SetSelection(item)
 	  continueCon = False
 	  
       if continueCon == True:
-	self.panel.append(wx.NotebookPage(self.tabbed, -1))
-	self.tabbed.AddPage(self.panel[len(self.panel)-1], filename)
-	textC.append(wx.TextCtrl(self.panel[len(self.panel)-1], style= (wx.TE_MULTILINE | wx.TE_DONTWRAP)))
-	activeFiles.append(pathName)
-	f = open(pathName, 'r')
-	self.tabbed.SetSelection(len(textC)-1)
-	textC[len(textC)-1].SetValue(f.read())
-	textC[len(textC)-1].SetFont(wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL))
-	textC[len(textC)-1].Bind(wx.EVT_KEY_UP, self.hightlighting)
-	f.close()
-	self.hightlighting(e)
+	self.Open(e,pathName, filename)
       dlg.Destroy()
       
       
   def hightlighting(self, e):
     global controll
-    controll = False
-    shift = False
+    self.control = False
+    self.shift = False
     indexText = self.tabbed.GetSelection()
-    global textC
-    text = textC[indexText].GetValue()
-    textC[indexText].SetStyle(0, len(textC[indexText].GetValue()) ,wx.TextAttr('#000000', wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL)))
+    text = self.textC[indexText].GetValue()
+    self.textC[indexText].SetStyle(0, len(self.textC[indexText].GetValue()) ,wx.TextAttr('#000000', wx.NullColour , wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.NORMAL, wx.FONTWEIGHT_NORMAL)))
     search = ["function",
 	      "/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/", 
 	      "\"([^\"]+)\"",
@@ -319,26 +313,29 @@ class MainWindow(wx.Frame):
 	ind = -1
 	
       if (ind <> -1):
-	textC[indexText].SetStyle(long(ind), long(ind + len(lessWord)),searchCol[index])
+	self.textC[indexText].SetStyle(long(ind), long(ind + len(lessWord)),searchCol[index])
 	ind = ind - plus
 	text = text[ind + len(lessWord):]
 	plus = plus + ind + len(lessWord)
 	lessWord = ""      
-      
-  def OnSaveFile(self,e):
-    global activeFiles
-    global textC
+	
+  def Save(self, fullPath):
     indexText = self.tabbed.GetSelection()
-    if activeFiles[indexText] <> '':
-      f = open(pathName, 'w')
-      f.write(textC[indexText].GetValue())
-      f.close()
+    f = open(fullPath, 'w')
+    f.write(self.textC[indexText].GetValue())
+    f.close()
+    tabName = self.tabbed.GetPageText(indexText)
+    if tabName[len(tabName) - 1:] == '*':
+      self.tabbed.SetPageText(indexText, self.tabbed.GetPageText(indexText)[:-1])
+    
+  def OnSaveFile(self,e):
+    indexText = self.tabbed.GetSelection()
+    if self.activeFiles[indexText] <> '':
+      self.Save(self.activeFiles[indexText])
     else:
       self.OnSaveAsFile(e)
 
   def OnSaveAsFile(self,e):
-    global activeFiles
-    global textC
     indexText = self.tabbed.GetSelection()
     self.dirname = ''
     dlg = wx.FileDialog(self, "Save As", self.dirname, "", "*", wx.SAVE)
@@ -347,10 +344,8 @@ class MainWindow(wx.Frame):
       self.dirname = dlg.GetDirectory()
       pathName = os.path.join(self.dirname, filename)
       self.tabbed.SetPageText(indexText,filename) 
-      f = open(pathName, 'w')
-      activeFiles[indexText] = pathName
-      f.write(textC[indexText].GetValue())
-      f.close()
+      self.Save(pathName)
+      self.activeFiles[indexText] = pathName
       dlg.Destroy()
       
   def OnExit(self,e):
